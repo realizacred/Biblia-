@@ -39,17 +39,32 @@ jobs:
 
       - name: Find or create the KV namespace
         run: |
-          id=$(wrangler kv namespace list | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s.slice(s.indexOf("[")));const n=j.find(x=>x.title.endsWith("biblia-avisos-SUBS")||x.title==="biblia-avisos-SUBS");process.stdout.write(n?n.id:"")})')
-          if [ -z "$id" ]; then
-            wrangler kv namespace create SUBS
-            id=$(wrangler kv namespace list | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s.slice(s.indexOf("[")));const n=j.find(x=>x.title.endsWith("biblia-avisos-SUBS")||x.title==="biblia-avisos-SUBS");process.stdout.write(n?n.id:"")})')
+          api="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/storage/kv/namespaces"
+          auth="Authorization: Bearer $CLOUDFLARE_API_TOKEN"
+          res=$(curl -s -H "$auth" "$api?per_page=100")
+          if [ "$(echo "$res" | jq -r .success)" != "true" ]; then
+            echo "::error::Cloudflare recusou a listagem de KV: $(echo "$res" | jq -c '.errors')"
+            exit 1
           fi
-          test -n "$id"
+          id=$(echo "$res" | jq -r '.result[] | select(.title=="biblia-avisos-SUBS") | .id' | head -1)
+          if [ -z "$id" ]; then
+            res=$(curl -s -X POST -H "$auth" -H "Content-Type: application/json" -d '{"title":"biblia-avisos-SUBS"}' "$api")
+            if [ "$(echo "$res" | jq -r .success)" != "true" ]; then
+              echo "::error::Cloudflare recusou criar o KV: $(echo "$res" | jq -c '.errors')"
+              exit 1
+            fi
+            id=$(echo "$res" | jq -r .result.id)
+          fi
           sed -i "s/KV_ID/$id/" wrangler.toml
 
       - name: Deploy
         run: |
-          wrangler deploy | tee deploy.log
+          if ! wrangler deploy > deploy.log 2>&1; then
+            cat deploy.log
+            echo "::error::Falha ao publicar: $(grep -iE 'error|✘' deploy.log | head -3 | tr '\n' ' ')"
+            exit 1
+          fi
+          cat deploy.log
           url=$(grep -oE 'https://[a-z0-9.-]+\.workers\.dev' deploy.log | head -1)
           test -n "$url"
           echo "{\"api\":\"$url\"}" > ../push-config.json
