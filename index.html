@@ -123,7 +123,14 @@ textarea,.field{width:100%;border:1px solid var(--line);border-radius:12px;paddi
 .date{font-family:var(--display);font-size:34px;font-weight:700;line-height:1}
 .ed{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-size:14px}
 .ed b{font-weight:600}
-.official{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--wine);color:var(--on-wine);border-radius:14px;padding:14px;font-weight:700;text-decoration:none;font-size:15px}
+.seg{display:flex;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:4px;gap:4px}
+.seg button{flex:1;text-align:center;padding:9px 0;border-radius:9px;font-weight:600;font-size:14px;color:var(--muted)}
+.seg button.on{background:var(--wine);color:var(--on-wine)}
+.luz-theme{font-family:var(--display);font-size:calc(var(--fs) + 7px);line-height:1.25;font-weight:700;color:var(--wine);text-wrap:balance;text-align:left;display:block;width:100%}
+.luz-theme small{display:block;font-family:var(--ui);font-size:13px;font-weight:600;color:var(--muted);margin-top:6px}
+.luz{font-family:var(--text);font-size:var(--fs);line-height:1.6;display:flex;flex-direction:column;gap:12px}
+.luz button{text-align:left;display:block;width:100%}
+.luz b{font-family:var(--ui);font-size:12.5px;color:var(--wine);font-weight:700;display:block;margin-bottom:1px}
 .page{border-radius:14px;overflow:hidden;border:1px solid var(--line);background:var(--card);min-height:180px;display:grid;place-items:center;position:relative;width:100%}
 .page img{display:block;width:100%;height:auto}
 .page .ph{color:var(--muted);font-size:14px;text-align:center;padding:30px;line-height:1.6}
@@ -147,9 +154,8 @@ const VOTD=[[18,23,1],[42,3,16],[49,4,13],[44,8,28],[22,41,10],[19,3,5],[23,29,1
 const COLORS=[["y","Amarelo"],["g","Verde"],["b","Azul"],["p","Rosa"]];
 const MONTHS=["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
 const WEEKDAYS=["domingo","segunda-feira","terça-feira","quarta-feira","quinta-feira","sexta-feira","sábado"];
-const DEFAULT_LINK="https://www.jesuscalling.com/";
 
-let BIBLE=null, NORM=null;
+let BIBLE=null, NORM=null, LUZ=null, luzLoading=false;
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const norm=s=>s.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
@@ -324,15 +330,45 @@ const eds=()=>store.get("editions",[{id:"chamado",name:"O Chamado de Jesus"}]);
 const curEd=()=>{const id=store.get("edition","chamado");return eds().find(e=>e.id===id)||eds()[0]};
 const dayKey=d=>String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
 const devKey=()=>`dev:${curEd().id}:${dayKey(S.devDate)}`;
+/* Luz Diária (Daily Light on the Daily Path, 1875): each reading is a list of [book, chapter, from, to, from, to...] */
+function luzRef(r){
+  const [b,c,...vs]=r,parts=[];
+  for(let i=0;i<vs.length;i+=2){const a=vs[i],z=vs[i+1],last=parts[parts.length-1];
+    if(last&&last[1]+1===a)last[1]=z;else parts.push([a,z])}
+  return `${BOOKS[b][0]} ${c}:`+parts.map(([a,z])=>a===z?a:`${a}-${z}`).join(",");
+}
+function luzText(r){
+  const [b,c,...vs]=r,out=[];
+  for(let i=0;i<vs.length;i+=2)for(let v=vs[i];v<=vs[i+1];v++)out.push(BIBLE[b][c-1][v-1]);
+  return out.join(" ");
+}
+function loadLuz(){
+  if(LUZ||luzLoading)return;luzLoading=true;
+  fetch("luz.json").then(r=>r.json()).then(d=>{LUZ=d;if(S.tab==="devocional")render()})
+    .catch(()=>{luzLoading=false;const el=$("#luzBox");if(el)el.innerHTML='<div class="empty">Não consegui carregar a Luz Diária. Verifique a internet e tente de novo.</div>'});
+}
+function viewLuz(d){
+  const per=S.period||(new Date().getHours()<15?"m":"e");
+  const chips=`<div class="chips"><button class="chip${per==="m"?" on":""}" data-per="m">☀ Manhã</button><button class="chip${per==="e"?" on":""}" data-per="e">☾ Noite</button></div>`;
+  if(!LUZ){loadLuz();return chips+'<div id="luzBox" class="loading" style="padding:30px 0">Carregando a leitura…</div>'}
+  const list=(LUZ[dayKey(d)]||{})[per]||[];
+  if(!list.length)return chips+'<div class="empty">Não há leitura para este dia.</div>';
+  const [first,...rest]=list,open=r=>`${r[0]},${r[1]},${r[2]}`;
+  return `${chips}
+    <button class="luz-theme" data-open="${open(first)}">“${esc(luzText(first))}”<small>${luzRef(first)}</small></button>
+    <div class="luz">${rest.map(r=>`<button data-open="${open(r)}"><b>${luzRef(r)}</b>${esc(luzText(r))}</button>`).join("")}</div>
+    <p class="hint" style="margin:0">Leituras da <i>Luz Diária</i> (1875), com o texto da Almeida Corrigida Fiel. Toque num versículo para abrir o capítulo.</p>`;
+}
 function viewDev(){
   const d=S.devDate,e=curEd(),entry=store.get(devKey(),{refs:[],note:""});
-  const link=store.get("devLink",DEFAULT_LINK);
   const isToday=d.toDateString()===new Date().toDateString();
+  const mode=store.get("devMode","luz");
   return `<div class="top" style="align-items:flex-end"><div style="flex:1;min-width:0"><div class="label">Devocional · ${isToday?"hoje, ":""}${WEEKDAYS[d.getDay()]}</div><div class="date">${d.getDate()} de ${MONTHS[d.getMonth()]}</div></div>
     <button class="icon-btn" data-day="-1" aria-label="Dia anterior">‹</button><button class="icon-btn" data-day="1" aria-label="Próximo dia">›</button></div>
   <div class="stack" style="gap:16px">
+    <div class="seg" role="tablist"><button class="${mode==="luz"?"on":""}" data-mode="luz" role="tab">Luz Diária</button><button class="${mode==="livro"?"on":""}" data-mode="livro" role="tab">Meu livro</button></div>
+    ${mode==="luz"?viewLuz(d)+"</div>":`
     <div class="ed"><span style="min-width:0">Livro: <b>${esc(e.name)}</b></span><button class="link" data-act="editions">Trocar ▾</button></div>
-    <a class="official" href="${esc(link)}" target="_blank" rel="noopener">Abrir devocional oficial ↗</a>
     <div><div class="label" style="margin-bottom:8px">Página de hoje do seu livro</div>
       <label class="page" for="photoIn" id="pageBox"><div class="ph">Toque para <b>tirar uma foto</b> ou escolher<br>a página de ${d.getDate()} de ${MONTHS[d.getMonth()]}</div></label>
       <input type="file" id="photoIn" accept="image/*" hidden>
@@ -341,7 +377,7 @@ function viewDev(){
       <div class="chips">${entry.refs.map((r,i)=>`<span class="chip" style="display:inline-flex;gap:8px;align-items:center"><button data-search="${esc(r)}">${esc(r)}</button><button data-delref="${i}" aria-label="Remover ${esc(r)}" style="color:var(--muted)">✕</button></span>`).join("")}<button class="chip add" data-act="addref">+ adicionar</button></div></div>
     <div><div class="label" style="margin-bottom:8px">Minha reflexão</div><textarea id="devNote" rows="5" placeholder="O que Deus falou com você hoje…">${esc(entry.note)}</textarea></div>
     <p class="hint" style="margin:0">A foto e a reflexão ficam só neste celular. Cada dia do ano tem a sua página, e quando sair o livro do ano novo é só tocar em “Trocar”.</p>
-  </div>`;
+  </div>`}`;
 }
 async function fillPhoto(){
   if(S.tab!=="devocional")return;
@@ -374,11 +410,10 @@ function pickerSheet(){
     <div class="label testament">Novo Testamento</div>${BOOKS.slice(39).map((x,i)=>`<button class="${i+39===b?"on":""}" data-pb="${i+39}">${x[0]}</button>`).join("")}</div>`);
 }
 function editionsSheet(){
-  const cur=curEd().id,link=store.get("devLink",DEFAULT_LINK);
+  const cur=curEd().id;
   openSheet(`<span class="t">Qual livro devocional?</span>
     <div class="stack" style="gap:8px">${eds().map(e=>`<button class="act${e.id===cur?" primary":""}" style="text-align:left" data-ed="${e.id}">${esc(e.name)}</button>`).join("")}</div>
-    <div><div class="label" style="margin-bottom:6px">Adicionar livro novo (ex: edição do ano)</div><div class="row"><input class="field" id="edName" placeholder="Nome do livro"><button class="act primary" data-act="added">Adicionar</button></div></div>
-    <div><div class="label" style="margin-bottom:6px">Link do devocional oficial</div><input class="field" id="devLink" value="${esc(link)}" inputmode="url"><div class="actions" style="margin-top:8px"><button class="act" data-act="savelink">Salvar link</button></div></div>`);
+    <div><div class="label" style="margin-bottom:6px">Adicionar livro novo (ex: edição do ano)</div><div class="row"><input class="field" id="edName" placeholder="Nome do livro"><button class="act primary" data-act="added">Adicionar</button></div></div>`);
 }
 function addRefSheet(){
   openSheet(`<span class="t">Adicionar versículo citado</span>
@@ -413,6 +448,8 @@ document.addEventListener("click",async ev=>{
   if(d.color){S.pick=d.color;document.querySelectorAll(".dot[data-color]").forEach(x=>x.classList.toggle("sel",x.dataset.color===d.color));return}
   if(d.pb){S.pb=+d.pb;return pickerSheet()}
   if(d.fs){store.set("fontSize",+d.fs);document.documentElement.style.setProperty("--fs",d.fs+"px");return fontSheet()}
+  if(d.mode){store.set("devMode",d.mode);return render()}
+  if(d.per){S.period=d.per;return render()}
   if(d.day){S.devDate=new Date(S.devDate.getFullYear(),S.devDate.getMonth(),S.devDate.getDate()+ +d.day);return render()}
   if(d.search){return runSearch(d.search)}
   if(d.ed){store.set("edition",d.ed);closeSheet();toast("Livro trocado");return render()}
@@ -428,7 +465,6 @@ document.addEventListener("click",async ev=>{
     case "unmark":{const {b,c,v}=S.sel;delete highlights[hlKey(b,c,v)];store.set("highlights",highlights);closeSheet();toast("Destaque removido");return render()}
     case "editions":return editionsSheet();
     case "added":{const n=$("#edName").value.trim();if(!n)return toast("Digite o nome do livro");const list=eds();const id="ed"+Date.now();list.push({id,name:n});store.set("editions",list);store.set("edition",id);closeSheet();toast("Livro adicionado");return render()}
-    case "savelink":{let u=$("#devLink").value.trim();if(!/^https?:\/\//i.test(u))u="https://"+u;store.set("devLink",u);closeSheet();toast("Link salvo");return render()}
     case "addref":return addRefSheet();
     case "delphoto":await photoDB.set(devKey(),null);toast("Foto removida");return render();
   }

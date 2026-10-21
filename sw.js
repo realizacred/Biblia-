@@ -1,6 +1,6 @@
 // Bump VERSION whenever index.html or biblia.json changes so phones pick up the new files.
-const VERSION = "biblia-v1";
-const CORE = ["./", "index.html", "biblia.json", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png"];
+const VERSION = "biblia-v2";
+const CORE = ["./", "index.html", "biblia.json", "luz.json", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(CORE)).then(() => self.skipWaiting()));
