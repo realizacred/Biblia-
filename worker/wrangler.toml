@@ -1,0 +1,12 @@
+name = "biblia-avisos"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+workers_dev = true
+
+[triggers]
+crons = ["*/5 * * * *"]
+
+# The deploy workflow replaces KV_ID with the namespace it finds or creates.
+[[kv_namespaces]]
+binding = "SUBS"
+id = "KV_ID"

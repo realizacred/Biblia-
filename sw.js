@@ -1,5 +1,5 @@
 // Bump VERSION whenever index.html or biblia.json changes so phones pick up the new files.
-const VERSION = "biblia-v2";
+const VERSION = "biblia-v3";
 const CORE = ["./", "index.html", "biblia.json", "luz.json", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png"];
 
 self.addEventListener("install", e => {
@@ -22,4 +22,48 @@ self.addEventListener("fetch", e => {
     }
     return res;
   }).catch(() => caches.match("index.html"))));
+});
+
+// Daily reminders: the worker only says which reading is due ({per: "m"|"e"}); the text comes from the cached files.
+const BOOK_NAMES = ["Gênesis", "Êxodo", "Levítico", "Números", "Deuteronômio", "Josué", "Juízes", "Rute", "1 Samuel", "2 Samuel", "1 Reis", "2 Reis", "1 Crônicas", "2 Crônicas", "Esdras", "Neemias", "Ester", "Jó", "Salmos", "Provérbios", "Eclesiastes", "Cânticos", "Isaías", "Jeremias", "Lamentações", "Ezequiel", "Daniel", "Oseias", "Joel", "Amós", "Obadias", "Jonas", "Miqueias", "Naum", "Habacuque", "Sofonias", "Ageu", "Zacarias", "Malaquias", "Mateus", "Marcos", "Lucas", "João", "Atos", "Romanos", "1 Coríntios", "2 Coríntios", "Gálatas", "Efésios", "Filipenses", "Colossenses", "1 Tessalonicenses", "2 Tessalonicenses", "1 Timóteo", "2 Timóteo", "Tito", "Filemom", "Hebreus", "Tiago", "1 Pedro", "2 Pedro", "1 João", "2 João", "3 João", "Judas", "Apocalipse"];
+
+async function cachedJson(file) {
+  const res = (await caches.match(file, { ignoreSearch: true })) || (await fetch(file));
+  return res.json();
+}
+
+async function reminderBody(per) {
+  try {
+    const [luz, bible] = await Promise.all([cachedJson("luz.json"), cachedJson("biblia.json")]);
+    const d = new Date();
+    const key = String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+    const [b, c, from, to] = luz[key][per][0];
+    let text = bible[b][c - 1].slice(from - 1, to).join(" ");
+    if (text.length > 110) text = text.slice(0, 107).replace(/\s+\S*$/, "") + "…";
+    return `“${text}” ${BOOK_NAMES[b]} ${c}:${from}${to > from ? "-" + to : ""}`;
+  } catch (e) {
+    return per === "m" ? "Sua leitura da manhã está esperando por você." : "Sua leitura da noite está esperando por você.";
+  }
+}
+
+self.addEventListener("push", e => {
+  let data = {};
+  try { data = e.data ? e.data.json() : {}; } catch (err) {}
+  const per = data.per || (new Date().getHours() < 15 ? "m" : "e");
+  e.waitUntil(reminderBody(per).then(body => self.registration.showNotification("Jesus te chama", {
+    body,
+    icon: "icons/icon-192.png",
+    badge: "icons/icon-192.png",
+    tag: "luz-" + per,
+    data: { url: "./?p=" + per + "#devocional" },
+  })));
+});
+
+self.addEventListener("notificationclick", e => {
+  e.notification.close();
+  const url = new URL(e.notification.data && e.notification.data.url || "./", self.registration.scope).href;
+  e.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(list => {
+    for (const c of list) if ("navigate" in c) return c.navigate(url).then(w => w && w.focus());
+    return self.clients.openWindow(url);
+  }));
 });

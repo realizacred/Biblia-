@@ -10,3 +10,8 @@ Funciona como app instalado (PWA): abra o link no celular e use "Adicionar à te
 
 ## Atualizar o app
 Depois de mudar `index.html` ou `biblia.json`, aumente `VERSION` em `sw.js` para os celulares baixarem a versão nova.
+
+## Avisos diários
+Os avisos da Luz Diária saem de um pequeno servidor no Cloudflare (`worker/`). Cada celular escolhe o horário da manhã e da noite; o servidor confere a cada 5 minutos quem deve receber o aviso.
+
+O workflow `Publicar servidor de avisos` publica o servidor sempre que algo em `worker/` muda e grava o endereço dele em `push-config.json`. Ele precisa dos segredos `CLOUDFLARE_API_TOKEN` e `CLOUDFLARE_ACCOUNT_ID` no repositório.
