@@ -1,6 +1,6 @@
 // Bump VERSION whenever index.html or biblia.json changes so phones pick up the new files.
-const VERSION = "biblia-v3";
-const CORE = ["./", "index.html", "biblia.json", "luz.json", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png"];
+const VERSION = "biblia-v4";
+const CORE = ["./", "index.html", "biblia.json", "devocional.json", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(CORE)).then(() => self.skipWaiting()));
@@ -24,7 +24,7 @@ self.addEventListener("fetch", e => {
   }).catch(() => caches.match("index.html"))));
 });
 
-// Daily reminders: the worker only says which reading is due ({per: "m"|"e"}); the text comes from the cached files.
+// Daily reminder: the worker only says that it is time; the text comes from the cached devotional.
 const BOOK_NAMES = ["Gênesis", "Êxodo", "Levítico", "Números", "Deuteronômio", "Josué", "Juízes", "Rute", "1 Samuel", "2 Samuel", "1 Reis", "2 Reis", "1 Crônicas", "2 Crônicas", "Esdras", "Neemias", "Ester", "Jó", "Salmos", "Provérbios", "Eclesiastes", "Cânticos", "Isaías", "Jeremias", "Lamentações", "Ezequiel", "Daniel", "Oseias", "Joel", "Amós", "Obadias", "Jonas", "Miqueias", "Naum", "Habacuque", "Sofonias", "Ageu", "Zacarias", "Malaquias", "Mateus", "Marcos", "Lucas", "João", "Atos", "Romanos", "1 Coríntios", "2 Coríntios", "Gálatas", "Efésios", "Filipenses", "Colossenses", "1 Tessalonicenses", "2 Tessalonicenses", "1 Timóteo", "2 Timóteo", "Tito", "Filemom", "Hebreus", "Tiago", "1 Pedro", "2 Pedro", "1 João", "2 João", "3 João", "Judas", "Apocalipse"];
 
 async function cachedJson(file) {
@@ -32,30 +32,27 @@ async function cachedJson(file) {
   return res.json();
 }
 
-async function reminderBody(per) {
+async function reminderBody() {
   try {
-    const [luz, bible] = await Promise.all([cachedJson("luz.json"), cachedJson("biblia.json")]);
+    const [devo, bible] = await Promise.all([cachedJson("devocional.json"), cachedJson("biblia.json")]);
     const d = new Date();
     const key = String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
-    const [b, c, from, to] = luz[key][per][0];
+    const { t, r: [b, c, from, to] } = devo[key];
     let text = bible[b][c - 1].slice(from - 1, to).join(" ");
-    if (text.length > 110) text = text.slice(0, 107).replace(/\s+\S*$/, "") + "…";
-    return `“${text}” ${BOOK_NAMES[b]} ${c}:${from}${to > from ? "-" + to : ""}`;
+    if (text.length > 90) text = text.slice(0, 87).replace(/\s+\S*$/, "") + "…";
+    return `${t}. “${text}” ${BOOK_NAMES[b]} ${c}:${from}${to > from ? "-" + to : ""}`;
   } catch (e) {
-    return per === "m" ? "Sua leitura da manhã está esperando por você." : "Sua leitura da noite está esperando por você.";
+    return "O seu momento com Deus de hoje está esperando por você.";
   }
 }
 
 self.addEventListener("push", e => {
-  let data = {};
-  try { data = e.data ? e.data.json() : {}; } catch (err) {}
-  const per = data.per || (new Date().getHours() < 15 ? "m" : "e");
-  e.waitUntil(reminderBody(per).then(body => self.registration.showNotification("Jesus te chama", {
+  e.waitUntil(reminderBody().then(body => self.registration.showNotification("Momento com Deus", {
     body,
     icon: "icons/icon-192.png",
     badge: "icons/icon-192.png",
-    tag: "luz-" + per,
-    data: { url: "./?p=" + per + "#devocional" },
+    tag: "momento",
+    data: { url: "./?p=m#devocional" },
   })));
 });
 
