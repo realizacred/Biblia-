@@ -126,10 +126,18 @@ textarea,.field{width:100%;border:1px solid var(--line);border-radius:12px;paddi
 .seg{display:flex;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:4px;gap:4px}
 .seg button{flex:1;text-align:center;padding:9px 0;border-radius:9px;font-weight:600;font-size:14px;color:var(--muted)}
 .seg button.on{background:var(--wine);color:var(--on-wine)}
-.luz-theme{font-family:var(--display);font-size:calc(var(--fs) + 7px);line-height:1.25;font-weight:700;color:var(--wine);text-wrap:balance;text-align:left;display:block;width:100%}
-.luz-theme small{display:block;font-family:var(--ui);font-size:13px;font-weight:600;color:var(--muted);margin-top:6px}
-.luz{font-family:var(--text);font-size:var(--fs);line-height:1.6;display:flex;flex-direction:column;gap:12px}
-.luz button{text-align:left;display:block;width:100%}
+.mo-meta{font-size:12.5px;color:var(--muted);font-weight:600}
+.mo-title{font-family:var(--display);font-size:calc(var(--fs) + 12px);font-weight:700;line-height:1.1;color:var(--wine);margin:2px 0 0;text-wrap:balance}
+.mo-verse{background:var(--wine-soft);border-radius:16px;padding:16px 18px;font-family:var(--text);font-size:var(--fs);line-height:1.5;font-style:italic;text-align:left;display:block;width:100%}
+.mo-verse b{display:block;font-family:var(--ui);font-style:normal;font-size:13px;font-weight:700;color:var(--wine);margin-top:8px}
+.mo-text{display:flex;flex-direction:column;gap:14px}
+.mo-text p{font-family:var(--text);font-size:var(--fs);line-height:1.6;margin:0}
+.mo-box{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px}
+.mo-box h4{margin:0 0 6px;font-size:12px;letter-spacing:1.3px;text-transform:uppercase;color:var(--wine)}
+.mo-box p{font-family:var(--text);font-size:calc(var(--fs) - 1px);line-height:1.55;margin:0}
+.mo-box.pray p{font-style:italic}
+.mo-done{background:var(--wine);color:var(--on-wine);border:1.5px solid var(--wine);border-radius:14px;text-align:center;padding:13px;font-weight:700;font-size:16px;width:100%}
+.mo-done.on{background:var(--card);color:var(--wine)}
 .notif-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px}
 .trow{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:15px;font-weight:600}
 .trow small{display:block;font-weight:400;color:var(--muted);font-size:13px;margin-top:2px}
@@ -139,7 +147,6 @@ textarea,.field{width:100%;border:1px solid var(--line);border-radius:12px;paddi
 .switch[aria-checked="true"]{background:#2E9E4F}.switch[aria-checked="true"]::after{left:23px}
 .ok{color:#2E7D32;font-weight:600;font-size:14px}
 .icon-btn.on{color:var(--wine);border-color:var(--wine)}
-.luz b{font-family:var(--ui);font-size:12.5px;color:var(--wine);font-weight:700;display:block;margin-bottom:1px}
 .page{border-radius:14px;overflow:hidden;border:1px solid var(--line);background:var(--card);min-height:180px;display:grid;place-items:center;position:relative;width:100%}
 .page img{display:block;width:100%;height:auto}
 .page .ph{color:var(--muted);font-size:14px;text-align:center;padding:30px;line-height:1.6}
@@ -164,7 +171,7 @@ const COLORS=[["y","Amarelo"],["g","Verde"],["b","Azul"],["p","Rosa"]];
 const MONTHS=["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
 const WEEKDAYS=["domingo","segunda-feira","terça-feira","quarta-feira","quinta-feira","sexta-feira","sábado"];
 
-let BIBLE=null, NORM=null, LUZ=null, luzLoading=false;
+let BIBLE=null, NORM=null, DEVO=null, devoLoading=false;
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const norm=s=>s.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
@@ -339,27 +346,21 @@ const eds=()=>store.get("editions",[{id:"chamado",name:"O Chamado de Jesus"}]);
 const curEd=()=>{const id=store.get("edition","chamado");return eds().find(e=>e.id===id)||eds()[0]};
 const dayKey=d=>String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
 const devKey=()=>`dev:${curEd().id}:${dayKey(S.devDate)}`;
-/* Luz Diária (Daily Light on the Daily Path, 1875): each reading is a list of [book, chapter, from, to, from, to...] */
-function luzRef(r){
-  const [b,c,...vs]=r,parts=[];
-  for(let i=0;i<vs.length;i+=2){const a=vs[i],z=vs[i+1],last=parts[parts.length-1];
-    if(last&&last[1]+1===a)last[1]=z;else parts.push([a,z])}
-  return `${BOOKS[b][0]} ${c}:`+parts.map(([a,z])=>a===z?a:`${a}-${z}`).join(",");
-}
-function luzText(r){
-  const [b,c,...vs]=r,out=[];
-  for(let i=0;i<vs.length;i+=2)for(let v=vs[i];v<=vs[i+1];v++)out.push(BIBLE[b][c-1][v-1]);
-  return out.join(" ");
-}
-function loadLuz(){
-  if(LUZ||luzLoading)return;luzLoading=true;
-  fetch("luz.json").then(r=>r.json()).then(d=>{LUZ=d;if(S.tab==="devocional")render()})
-    .catch(()=>{luzLoading=false;const el=$("#luzBox");if(el)el.innerHTML='<div class="empty">Não consegui carregar a Luz Diária. Verifique a internet e tente de novo.</div>'});
+/* Momento com Deus: one original devotional per day, "MM-DD" -> {t: title, r: [book, chapter, from, to], p: paragraphs, h: "para hoje", o: prayer}.
+   The verse itself comes from the app's own Bible text. */
+const devoRef=([b,c,a,z])=>`${BOOKS[b][0]} ${c}:${a}${z>a?"-"+z:""}`;
+const devoVerse=([b,c,a,z])=>BIBLE[b][c-1].slice(a-1,z).join(" ");
+function loadDevo(){
+  if(DEVO||devoLoading)return;devoLoading=true;
+  fetch("devocional.json").then(r=>r.json()).then(d=>{DEVO=d;if(S.tab==="devocional")render()})
+    .catch(()=>{devoLoading=false;const el=$("#devoBox");if(el)el.innerHTML='<div class="empty">Não consegui carregar o devocional. Verifique a internet e tente de novo.</div>'});
 }
 /* ---------- daily reminders (Web Push through the biblia-avisos worker) ---------- */
 let PUSH_API=null;
-fetch("push-config.json",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(c=>{PUSH_API=c&&c.api||null}).catch(()=>{});
-const notif=()=>store.get("notif",{on:false,mOn:true,eOn:true,morning:"08:00",evening:"21:00"});
+fetch("push-config.json",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(c=>{PUSH_API=c&&c.api||null;
+  // phones set up for the old morning + evening readings drop the evening reminder
+  const n=notif();if(PUSH_API&&n.on&&n.eOn){const m={...n,eOn:false};store.set("notif",m);syncPush(m).catch(()=>{})}}).catch(()=>{});
+const notif=()=>store.get("notif",{on:false,mOn:true,eOn:false,morning:"08:00",evening:"21:00"});
 const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
 const standalone=matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
 function viewNotif(){
@@ -370,8 +371,8 @@ function viewNotif(){
   }
   const row=(k,label,timeKey,onKey)=>`<div class="trow"><span>${label}</span><span style="display:flex;align-items:center;gap:10px"><input type="time" step="900" id="t-${k}" value="${n[timeKey]}" aria-label="Horário ${label}"><button class="switch" role="switch" aria-checked="${n.on&&n[onKey]}" data-sw="${onKey}" aria-label="${label}"></button></span></div>`;
   return `<div class="notif-card">
-    <div class="trow"><span>Avisos da Luz Diária<small>Toque no horário para mudar</small></span></div>
-    ${row("m","☀ Manhã","morning","mOn")}${row("e","☾ Noite","evening","eOn")}
+    <div class="trow"><span>Aviso do Momento com Deus<small>Um aviso por dia. Toque no horário para mudar</small></span></div>
+    ${row("m","Horário","morning","mOn")}
     ${n.on?`<div class="ok">✓ Avisos ligados neste celular</div><div class="actions"><button class="act" data-act="testpush">Mandar um aviso de teste</button></div>`
       :`<button class="act primary" data-act="enablepush">Ativar avisos</button><p class="hint" style="margin:0">O celular vai perguntar se pode mandar notificações. Toque em <b>Permitir</b>.</p>`}
   </div>`;
@@ -388,10 +389,10 @@ async function currentSub(create){
   return sub;
 }
 async function syncPush(n){
-  const sub=await currentSub(n.on&&(n.mOn||n.eOn));
+  const sub=await currentSub(n.on&&n.mOn);
   if(!sub)return;
-  if(!n.on||(!n.mOn&&!n.eOn)){await pushCall("/unsubscribe",{subscription:sub.toJSON()}).catch(()=>{});return}
-  await pushCall("/subscribe",{subscription:sub.toJSON(),tz:Intl.DateTimeFormat().resolvedOptions().timeZone,morning:n.mOn?n.morning:null,evening:n.eOn?n.evening:null});
+  if(!n.on||!n.mOn){await pushCall("/unsubscribe",{subscription:sub.toJSON()}).catch(()=>{});return}
+  await pushCall("/subscribe",{subscription:sub.toJSON(),tz:Intl.DateTimeFormat().resolvedOptions().timeZone,morning:n.morning,evening:null});
 }
 async function enablePush(){
   if(!PUSH_API)return toast("Os avisos ainda estão sendo configurados. Tente mais tarde.");
@@ -406,28 +407,31 @@ async function updatePush(change){
   if(!notif().on||!PUSH_API)return;
   try{await syncPush(n);toast("Horário salvo")}catch(e){toast("Não consegui salvar. Verifique a internet.")}
 }
-function viewLuz(d){
-  const per=S.period||(new Date().getHours()<15?"m":"e");
+function viewMomento(d){
   const card=(S.showNotif??!notif().on)?viewNotif():"";
-  const chips=card+`<div class="chips"><button class="chip${per==="m"?" on":""}" data-per="m">☀ Manhã</button><button class="chip${per==="e"?" on":""}" data-per="e">☾ Noite</button></div>`;
-  if(!LUZ){loadLuz();return chips+'<div id="luzBox" class="loading" style="padding:30px 0">Carregando a leitura…</div>'}
-  const list=(LUZ[dayKey(d)]||{})[per]||[];
-  if(!list.length)return chips+'<div class="empty">Não há leitura para este dia.</div>';
-  const [first,...rest]=list,open=r=>`${r[0]},${r[1]},${r[2]}`;
-  return `${chips}
-    <button class="luz-theme" data-open="${open(first)}">“${esc(luzText(first))}”<small>${luzRef(first)}</small></button>
-    <div class="luz">${rest.map(r=>`<button data-open="${open(r)}"><b>${luzRef(r)}</b>${esc(luzText(r))}</button>`).join("")}</div>
-    <p class="hint" style="margin:0">Leituras da <i>Luz Diária</i> (1875), com o texto da Almeida Corrigida Fiel. Toque num versículo para abrir o capítulo.</p>`;
+  if(!DEVO){loadDevo();return card+'<div id="devoBox" class="loading" style="padding:30px 0">Carregando o devocional…</div>'}
+  const m=DEVO[dayKey(d)];
+  if(!m)return card+'<div class="empty">Não há devocional para este dia.</div>';
+  const [b,c,v]=m.r,key="lido:"+d.getFullYear()+"-"+dayKey(d),done=store.get(key,false);
+  return `${card}
+    <div><div class="mo-meta">☕ Leitura rápida</div><h2 class="mo-title">${esc(m.t)}</h2></div>
+    <button class="mo-verse" data-open="${b},${c},${v}">“${esc(devoVerse(m.r))}”<b>${devoRef(m.r)}</b></button>
+    <div class="mo-text">${m.p.map(x=>`<p>${esc(x)}</p>`).join("")}</div>
+    <div class="mo-box"><h4>Para hoje</h4><p>${esc(m.h)}</p></div>
+    <div class="mo-box pray"><h4>Oração</h4><p>${esc(m.o)}</p></div>
+    <button class="mo-done${done?" on":""}" data-done="${key}">${done?"✓ Lido":"✓ Li hoje"}</button>
+    <button class="link" style="align-self:center" data-open="${b},${c}">Ler ${BOOKS[b][0]} ${c} completo ›</button>
+    <p class="hint" style="margin:0">Devocional escrito para este app, com o texto bíblico da Almeida Corrigida Fiel.</p>`;
 }
 function viewDev(){
   const d=S.devDate,e=curEd(),entry=store.get(devKey(),{refs:[],note:""});
   const isToday=d.toDateString()===new Date().toDateString();
-  const mode=store.get("devMode","luz");
+  const mode=store.get("devMode","momento")==="livro"?"livro":"momento";
   return `<div class="top" style="align-items:flex-end"><div style="flex:1;min-width:0"><div class="label">Devocional · ${isToday?"hoje, ":""}${WEEKDAYS[d.getDay()]}</div><div class="date">${d.getDate()} de ${MONTHS[d.getMonth()]}</div></div>
-    ${mode==="luz"?`<button class="icon-btn${notif().on?" on":""}" data-act="bell" aria-label="Avisos diários">🔔</button>`:""}<button class="icon-btn" data-day="-1" aria-label="Dia anterior">‹</button><button class="icon-btn" data-day="1" aria-label="Próximo dia">›</button></div>
+    ${mode==="momento"?`<button class="icon-btn${notif().on?" on":""}" data-act="bell" aria-label="Avisos diários">🔔</button>`:""}<button class="icon-btn" data-day="-1" aria-label="Dia anterior">‹</button><button class="icon-btn" data-day="1" aria-label="Próximo dia">›</button></div>
   <div class="stack" style="gap:16px">
-    <div class="seg" role="tablist"><button class="${mode==="luz"?"on":""}" data-mode="luz" role="tab">Luz Diária</button><button class="${mode==="livro"?"on":""}" data-mode="livro" role="tab">Meu livro</button></div>
-    ${mode==="luz"?viewLuz(d)+"</div>":`
+    <div class="seg" role="tablist"><button class="${mode==="momento"?"on":""}" data-mode="momento" role="tab">Momento com Deus</button><button class="${mode==="livro"?"on":""}" data-mode="livro" role="tab">Meu livro</button></div>
+    ${mode==="momento"?viewMomento(d)+"</div>":`
     <div class="ed"><span style="min-width:0">Livro: <b>${esc(e.name)}</b></span><button class="link" data-act="editions">Trocar ▾</button></div>
     <div><div class="label" style="margin-bottom:8px">Página de hoje do seu livro</div>
       <label class="page" for="photoIn" id="pageBox"><div class="ph">Toque para <b>tirar uma foto</b> ou escolher<br>a página de ${d.getDate()} de ${MONTHS[d.getMonth()]}</div></label>
@@ -509,7 +513,7 @@ document.addEventListener("click",async ev=>{
   if(d.pb){S.pb=+d.pb;return pickerSheet()}
   if(d.fs){store.set("fontSize",+d.fs);document.documentElement.style.setProperty("--fs",d.fs+"px");return fontSheet()}
   if(d.mode){store.set("devMode",d.mode);return render()}
-  if(d.per){S.period=d.per;return render()}
+  if(d.done){const on=!store.get(d.done,false);store.set(d.done,on);if(on)toast("Que bom! Até amanhã.");return render()}
   if(d.sw){if(!notif().on)return enablePush();const n=notif();return updatePush({[d.sw]:!n[d.sw]})}
   if(d.day){S.devDate=new Date(S.devDate.getFullYear(),S.devDate.getMonth(),S.devDate.getDate()+ +d.day);return render()}
   if(d.search){return runSearch(d.search)}
@@ -548,7 +552,6 @@ document.addEventListener("input",ev=>{
 });
 document.addEventListener("change",async ev=>{
   if(ev.target.id==="t-m"&&ev.target.value)return updatePush({morning:ev.target.value});
-  if(ev.target.id==="t-e"&&ev.target.value)return updatePush({evening:ev.target.value});
   if(ev.target.id==="photoIn"&&ev.target.files[0]){
     try{const url=await shrink(ev.target.files[0]);await photoDB.set(devKey(),url);toast("Foto salva");render()}
     catch(e){toast("Não consegui abrir essa imagem")}
@@ -557,7 +560,7 @@ document.addEventListener("change",async ev=>{
 
 fetch("biblia.json").then(r=>{if(!r.ok)throw new Error(r.status);return r.json()}).then(data=>{BIBLE=data;
   const tab=(location.hash||"").slice(1);if(["ler","devocional","destaques"].includes(tab))S.tab=tab;
-  const p=new URLSearchParams(location.search).get("p");if(p==="m"||p==="e"){S.tab="devocional";S.period=p;store.set("devMode","luz")}
+  const p=new URLSearchParams(location.search).get("p");if(p){S.tab="devocional";store.set("devMode","momento")}
   render()})
   .catch(()=>{$("#app").innerHTML='<div class="empty" style="margin-top:40px">Não consegui carregar o texto da Bíblia. Verifique a internet e abra a página de novo.</div>'});
 </script>
