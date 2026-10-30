@@ -1,5 +1,5 @@
 // Bump VERSION whenever index.html or biblia.json changes so phones pick up the new files.
-const VERSION = "biblia-v5";
+const VERSION = "biblia-v6";
 const CORE = ["./", "index.html", "biblia.json", "devocional.json", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png"];
 
 self.addEventListener("install", e => {

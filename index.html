@@ -368,35 +368,42 @@ function wrapText(ctx,text,maxW){
 async function drawStory(d,m){
   const {W,H,x}=STORY,maxW=W-2*x,c=document.createElement("canvas");c.width=W;c.height=H;
   const ctx=c.getContext("2d");
-  await Promise.all(['700 100px "Cormorant Garamond"','italic 400 54px "Source Serif 4"','700 30px Figtree','500 40px Figtree'].map(f=>document.fonts.load(f).catch(()=>{})));
+  await Promise.all(['700 100px "Cormorant Garamond"','italic 400 54px "Source Serif 4"','400 40px "Source Serif 4"','700 30px Figtree','500 40px Figtree'].map(f=>document.fonts.load(f).catch(()=>{})));
   const bg=ctx.createLinearGradient(0,0,W*.35,H);bg.addColorStop(0,STORY.g1);bg.addColorStop(.45,STORY.g2);bg.addColorStop(1,STORY.g3);
   ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
   ctx.textBaseline="alphabetic";
   const spaced=(t,px)=>{ctx.letterSpacing=px+"px";return t};
   // header
-  let y=300;ctx.fillStyle="rgba(255,255,255,.85)";ctx.font="700 30px Figtree";ctx.fillText(spaced("MOMENTO COM DEUS",6),x,y);
-  ctx.letterSpacing="0px";ctx.font="500 40px Figtree";y+=56;
+  let y=270;ctx.fillStyle="rgba(255,255,255,.85)";ctx.font="700 28px Figtree";ctx.fillText(spaced("MOMENTO COM DEUS",6),x,y);
+  ctx.letterSpacing="0px";ctx.font="500 36px Figtree";y+=50;
   const wd=WEEKDAYS[d.getDay()].replace("-feira","");ctx.fillText(`${wd[0].toUpperCase()+wd.slice(1)}, ${d.getDate()} de ${MONTHS[d.getMonth()]}`,x,y);
-  // bottom block: "Para hoje" box + footer, measured first so the verse can shrink to fit between
-  ctx.font="500 38px Figtree";const hl=wrapText(ctx,m.h,maxW-88),boxH=40+34+20+hl.length*56+28,footY=1650,boxY=footY-70-boxH;
-  // title + verse, shrinking together when a long passage would collide with the box
-  const verse="“"+devoVerse(m.r)+"”",ref=devoRef(m.r).toUpperCase();
-  let k=1,tl,vl;
-  for(;k>.55;k-=.05){
-    ctx.font=`700 ${Math.round(100*k)}px "Cormorant Garamond"`;tl=wrapText(ctx,m.t,maxW);
-    ctx.font=`italic 400 ${Math.round(54*k)}px "Source Serif 4"`;vl=wrapText(ctx,verse,maxW);
-    const h=110*k+tl.length*102*k+90*k+vl.length*78*k+70;
-    if(y+h<boxY-40)break;
+  const top=y,footY=1665,verse="“"+devoVerse(m.r)+"”",ref=devoRef(m.r).toUpperCase();
+  // everything between the date and the footer shrinks together until the whole devotional fits
+  let k=1,L;
+  const fonts=k=>({t:`700 ${Math.round(84*k)}px "Cormorant Garamond"`,v:`italic 400 ${Math.round(44*k)}px "Source Serif 4"`,p:`400 ${Math.round(37*k)}px "Source Serif 4"`,h:`500 ${Math.round(33*k)}px Figtree`});
+  for(;k>.5;k-=.03){
+    const f=fonts(k),lay=s=>(ctx.font=f[s],0);
+    lay("t");const tl=wrapText(ctx,m.t,maxW);lay("v");const vl=wrapText(ctx,verse,maxW);
+    lay("p");const pl=m.p.map(x=>wrapText(ctx,x,maxW));lay("h");const hl=wrapText(ctx,m.h,maxW-72);
+    L={tl,vl,pl,hl,lt:90*k,lv:62*k,lp:54*k,lh:48*k};
+    L.boxH=30+26+16+hl.length*L.lh+18;
+    const h=80*k+tl.length*L.lt+50*k+vl.length*L.lv+50+60*k+pl.reduce((a,l)=>a+l.length*L.lp,0)+(pl.length-1)*22*k+50*k+L.boxH;
+    if(top+h<footY-70)break;
   }
-  y+=110*k;ctx.fillStyle="#fff";ctx.font=`700 ${Math.round(100*k)}px "Cormorant Garamond"`;
-  for(const l of tl){y+=102*k;ctx.fillText(l,x,y)}
-  y+=90*k;ctx.font=`italic 400 ${Math.round(54*k)}px "Source Serif 4"`;
-  for(const l of vl){y+=78*k;ctx.fillText(l,x,y)}
-  y+=66;ctx.fillStyle=STORY.gold;ctx.font="700 34px Figtree";ctx.fillText(spaced(ref,1.5),x,y);ctx.letterSpacing="0px";
+  const f=fonts(k);
+  y+=80*k;ctx.fillStyle="#fff";ctx.font=f.t;
+  for(const l of L.tl){y+=L.lt;ctx.fillText(l,x,y)}
+  y+=50*k;ctx.font=f.v;
+  for(const l of L.vl){y+=L.lv;ctx.fillText(l,x,y)}
+  y+=50;ctx.fillStyle=STORY.gold;ctx.font="700 30px Figtree";ctx.fillText(spaced(ref,1.5),x,y);ctx.letterSpacing="0px";
+  // reflection
+  y+=60*k-22*k;ctx.fillStyle="rgba(255,255,255,.92)";ctx.font=f.p;
+  for(const para of L.pl){y+=22*k;for(const l of para){y+=L.lp;ctx.fillText(l,x,y)}}
   // "Para hoje"
-  ctx.fillStyle="rgba(255,255,255,.13)";ctx.beginPath();ctx.roundRect(x,boxY,maxW,boxH,36);ctx.fill();
-  ctx.fillStyle=STORY.gold;ctx.font="700 26px Figtree";ctx.fillText(spaced("PARA HOJE",5),x+44,boxY+40+26);ctx.letterSpacing="0px";
-  ctx.fillStyle="#fff";ctx.font="500 38px Figtree";hl.forEach((l,i)=>ctx.fillText(l,x+44,boxY+40+34+20+38+i*56));
+  const boxY=y+50*k;
+  ctx.fillStyle="rgba(255,255,255,.13)";ctx.beginPath();ctx.roundRect(x,boxY,maxW,L.boxH,30);ctx.fill();
+  ctx.fillStyle=STORY.gold;ctx.font="700 24px Figtree";ctx.fillText(spaced("PARA HOJE",5),x+36,boxY+30+22);ctx.letterSpacing="0px";
+  ctx.fillStyle="#fff";ctx.font=f.h;L.hl.forEach((l,i)=>ctx.fillText(l,x+36,boxY+30+26+16+L.lh*.78+i*L.lh));
   // footer
   ctx.fillStyle="#fff";ctx.beginPath();ctx.roundRect(x,footY-44,60,60,16);ctx.fill();
   ctx.fillStyle=STORY.g2;ctx.font='700 44px "Cormorant Garamond"';ctx.textAlign="center";ctx.fillText("B",x+30,footY);ctx.textAlign="left";
