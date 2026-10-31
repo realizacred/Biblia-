@@ -1,9 +1,9 @@
 // Bump VERSION whenever index.html or biblia.json changes so phones pick up the new files.
-const VERSION = "biblia-v6";
+const VERSION = "biblia-v7";
 const CORE = ["./", "index.html", "biblia.json", "devocional.json", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png"];
 
 self.addEventListener("install", e => {
-  e.waitUntil(caches.open(VERSION).then(c => c.addAll(CORE)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(VERSION).then(c => c.addAll(CORE.map(u => new Request(u, { cache: "reload" })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", e => {
@@ -12,9 +12,17 @@ self.addEventListener("activate", e => {
     .then(() => self.clients.claim()));
 });
 
-// Cache first for everything (app files and Google Fonts), falling back to the network and saving what it returns.
+// The page itself: network first so a new version shows up on the next open, cached copy when offline.
+// Everything else (Bible text, devotional, fonts) is cache first, falling back to the network and saving what it returns.
 self.addEventListener("fetch", e => {
   if (e.request.method !== "GET") return;
+  if (e.request.mode === "navigate") {
+    e.respondWith(fetch(e.request, { cache: "no-cache" }).then(res => {
+      if (res.ok) { const copy = res.clone(); caches.open(VERSION).then(c => c.put("index.html", copy)); }
+      return res;
+    }).catch(() => caches.match("index.html")));
+    return;
+  }
   e.respondWith(caches.match(e.request, { ignoreSearch: true }).then(hit => hit || fetch(e.request).then(res => {
     if (res.ok || res.type === "opaque") {
       const copy = res.clone();
