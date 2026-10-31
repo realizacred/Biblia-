@@ -646,7 +646,14 @@ fetch("biblia.json").then(r=>{if(!r.ok)throw new Error(r.status);return r.json()
 </script>
 
 <script>
-if("serviceWorker" in navigator)addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+// Check for a new version on every open and reload once when it takes over, so phones never stay on an old copy.
+if("serviceWorker" in navigator){
+  const hadSW=!!navigator.serviceWorker.controller;let reloaded=false;
+  navigator.serviceWorker.addEventListener("controllerchange",()=>{if(hadSW&&!reloaded){reloaded=true;location.reload()}});
+  addEventListener("load",()=>navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(reg=>{
+    document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")reg.update().catch(()=>{})});
+  }).catch(()=>{}));
+}
 </script>
 </body>
 </html>
