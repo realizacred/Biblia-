@@ -139,6 +139,22 @@ textarea,.field{width:100%;border:1px solid var(--line);border-radius:12px;paddi
 .mo-done{background:var(--brand);color:var(--on-brand);border:1.5px solid var(--brand);border-radius:14px;text-align:center;padding:13px;font-weight:700;font-size:16px;width:100%}
 .mo-done.on{background:var(--card);color:var(--brand)}
 .mo-story{background:var(--card);color:var(--brand);border:1.5px solid var(--brand);border-radius:14px;text-align:center;padding:12px;font-weight:700;font-size:16px;width:100%}
+.lv{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:12px}
+.lv h4{margin:0;font-size:12px;letter-spacing:1.3px;text-transform:uppercase;color:var(--brand)}
+.lv-row{display:flex;gap:14px;align-items:center;text-align:left;width:100%}
+.lv-th{width:118px;flex:none;aspect-ratio:16/9;border-radius:12px;background:linear-gradient(135deg,#61834A,#2F4223);position:relative;display:grid;place-items:center;overflow:hidden}
+.lv-th::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 75% 25%,rgba(243,213,138,.55),transparent 55%)}
+.lv-play{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.95);display:grid;place-items:center;position:relative;color:#4E6B3A;font-size:15px;padding-left:3px;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.lv-name{font-family:var(--display);font-size:24px;font-weight:700;line-height:1.05;color:var(--ink)}
+.lv-sub{font-size:13px;color:var(--muted);margin-top:3px;line-height:1.35}
+.lv-btn{background:var(--brand);color:var(--on-brand);border-radius:12px;text-align:center;padding:11px;font-weight:700;font-size:15px;width:100%}
+.lv-why{font-family:var(--text);font-size:calc(var(--fs) - 2px);line-height:1.5;margin:0}
+.lv-vid{aspect-ratio:16/9;border-radius:12px;background:#1a2513;overflow:hidden;position:relative}
+.lv-vid iframe,.lv-vid>div{position:absolute;inset:0;width:100%;height:100%;border:0}
+.lv-vid .lv-msg{display:grid;place-items:center;text-align:center;padding:16px;color:#fff;font-size:14px;line-height:1.4}
+.lv-acts{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:14px}
+.lv-acts .link{white-space:nowrap}
+.lv-acts small{color:var(--muted);font-size:12.5px;text-align:right}
 .story-prev{display:block;width:min(56vw,240px);margin:4px auto 0;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.18)}
 .notif-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px}
 .trow{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:15px;font-weight:600}
@@ -173,7 +189,7 @@ const COLORS=[["y","Amarelo"],["g","Verde"],["b","Azul"],["p","Rosa"]];
 const MONTHS=["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
 const WEEKDAYS=["domingo","segunda-feira","terça-feira","quarta-feira","quinta-feira","sexta-feira","sábado"];
 
-let BIBLE=null, NORM=null, DEVO=null, devoLoading=false;
+let BIBLE=null, NORM=null, DEVO=null, devoLoading=false, LOUVOR=null, lvLoading=false;
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const norm=s=>s.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
@@ -256,7 +272,7 @@ function openChapter(b,c,flashV){
   if(flashV){const el=document.querySelector(`.v[data-v="${flashV}"]`);if(el){el.scrollIntoView({block:"center"});el.classList.add("flash");setTimeout(()=>el.classList.remove("flash"),1600)}}
   else scrollTo(0,0);
 }
-function go(tab){S.tab=tab;if(tab==="buscar")S.view="home";S.sel=null;closeSheet();render();scrollTo(0,0)}
+function go(tab){S.tab=tab;if(S.lv)S.lv.on=false;if(tab==="buscar")S.view="home";S.sel=null;closeSheet();render();scrollTo(0,0)}
 
 /* ---------- views ---------- */
 const ICON={
@@ -356,6 +372,56 @@ function loadDevo(){
   if(DEVO||devoLoading)return;devoLoading=true;
   fetch("devocional.json").then(r=>r.json()).then(d=>{DEVO=d;if(S.tab==="devocional")render()})
     .catch(()=>{devoLoading=false;const el=$("#devoBox");if(el)el.innerHTML='<div class="empty">Não consegui carregar o devocional. Verifique a internet e tente de novo.</div>'});
+}
+/* Louvor do dia: louvor.json = {songs: {key: {n: name, a: artist, v: [YouTube ids, best first]}},
+   days: {"MM-DD": {s: [song keys, best first], q: reflection while listening}}}.
+   Nothing is hosted here: the song plays from YouTube inside an embedded player, so it needs internet. */
+function loadLouvor(){
+  if(LOUVOR||lvLoading)return;lvLoading=true;
+  fetch("louvor.json").then(r=>r.json()).then(d=>{LOUVOR=d;if(S.tab==="devocional")render()}).catch(()=>{lvLoading=false});
+}
+function lvState(d){const k=dayKey(d);if(!S.lv||S.lv.k!==k)S.lv={k,i:0,on:false,fail:0};return S.lv}
+function lvSong(){const day=LOUVOR.days[S.lv.k];return LOUVOR.songs[day.s[S.lv.i%day.s.length]]}
+function viewLouvor(d,m){
+  if(!LOUVOR){loadLouvor();return ""}
+  const day=LOUVOR.days[dayKey(d)];if(!day)return "";
+  const st=lvState(d),s=lvSong();
+  if(st.on)return `<div class="lv"><h4>🎵 Louvor de hoje · tocando</h4>
+    <div class="lv-vid"><div id="lvPlayer"></div></div>
+    <p class="lv-why">${esc(day.q)}</p>
+    <div class="lv-acts"><button class="link" data-act="lvnext">↻ Outra sugestão</button><small>YouTube · precisa de internet</small></div></div>`;
+  return `<div class="lv"><h4>🎵 Louvor de hoje</h4>
+    <button class="lv-row" data-act="lvplay" aria-label="Ouvir ${esc(s.n)}"><span class="lv-th"><span class="lv-play">▶</span></span>
+      <span style="min-width:0"><span class="lv-name" style="display:block">${esc(s.n)}</span><span class="lv-sub" style="display:block">${esc(s.a)} · combina com o tema de hoje: ${esc(m.t)}</span></span></button>
+    <button class="lv-btn" data-act="lvplay">▶ Ouvir</button></div>`;
+}
+function ytApi(){
+  if(window.YT&&YT.Player)return Promise.resolve();
+  if(!ytApi.p)ytApi.p=new Promise((ok,no)=>{
+    const prev=window.onYouTubeIframeAPIReady;window.onYouTubeIframeAPIReady=()=>{if(prev)prev();ok()};
+    const sc=document.createElement("script");sc.src="https://www.youtube.com/iframe_api";
+    sc.onerror=()=>{ytApi.p=null;sc.remove();no()};document.head.appendChild(sc);
+    setTimeout(()=>{if(!(window.YT&&YT.Player)){ytApi.p=null;no()}},15000);
+  });
+  return ytApi.p;
+}
+async function mountLouvor(){
+  const el=$("#lvPlayer");if(!el||!S.lv)return;
+  const msg=t=>{const x=$("#lvPlayer");if(x)x.outerHTML=`<div class="lv-msg">${t}</div>`};
+  if(!navigator.onLine)return msg("Sem internet agora. O louvor toca pelo YouTube, então precisa de conexão.");
+  try{await ytApi()}catch(e){return msg("Não consegui abrir o YouTube. Verifique a internet e toque em Outra sugestão para tentar de novo.")}
+  if(!document.body.contains(el))return;
+  const st=S.lv,ids=lvSong().v;let j=0;
+  new YT.Player(el,{host:"https://www.youtube-nocookie.com",videoId:ids[0],
+    playerVars:{autoplay:1,playsinline:1,rel:0},
+    events:{onReady:e=>{try{e.target.playVideo()}catch(_){}},
+      onError:e=>{
+        if(++j<ids.length)return e.target.loadVideoById(ids[j]);
+        // every video of this song failed (removed or blocked from embedding): move to the next suggestion
+        const day=LOUVOR.days[st.k];
+        if(++st.fail>=day.s.length)return msg("Os vídeos de hoje não estão disponíveis agora. Tente mais tarde.");
+        st.i++;toast("Esse vídeo saiu do ar. Tocando outra sugestão.");render();
+      }}});
 }
 /* Instagram story (1080x1920) of the day's devotional, drawn on a canvas and handed to the phone's share sheet
    ("Salvar imagem" puts it in Photos). Text stays inside Instagram's safe area (roughly y 250-1670). */
@@ -496,6 +562,7 @@ function viewMomento(d){
     <div class="mo-text">${m.p.map(x=>`<p>${esc(x)}</p>`).join("")}</div>
     <div class="mo-box"><h4>Para hoje</h4><p>${esc(m.h)}</p></div>
     <div class="mo-box pray"><h4>Oração</h4><p>${esc(m.o)}</p></div>
+    ${viewLouvor(d,m)}
     <button class="mo-done${done?" on":""}" data-done="${key}">${done?"✓ Lido":"✓ Li hoje"}</button>
     <button class="mo-story" data-act="story">📸 Criar story do dia</button>
     <button class="link" style="align-self:center" data-open="${b},${c}">Ler ${BOOKS[b][0]} ${c} completo ›</button>
@@ -574,6 +641,7 @@ function render(){
   const v=S.tab==="buscar"?(S.view==="verse"?viewVerse():S.view==="word"?viewWord():viewHome()):S.tab==="ler"?viewRead():S.tab==="devocional"?viewDev():viewHighlights();
   $("#app").innerHTML=v;
   if(S.tab==="devocional")fillPhoto();
+  if(S.tab==="devocional"&&S.lv&&S.lv.on)mountLouvor();
 }
 
 /* ---------- events ---------- */
@@ -591,9 +659,12 @@ document.addEventListener("click",async ev=>{
   if(d.pb){S.pb=+d.pb;return pickerSheet()}
   if(d.fs){store.set("fontSize",+d.fs);document.documentElement.style.setProperty("--fs",d.fs+"px");return fontSheet()}
   if(d.mode){store.set("devMode",d.mode);return render()}
-  if(d.done){const on=!store.get(d.done,false);store.set(d.done,on);if(on)toast("Que bom! Até amanhã.");return render()}
+  if(d.done){const on=!store.get(d.done,false);store.set(d.done,on);if(on)toast("Que bom! Até amanhã.");
+    // update the button in place so a louvor that is playing keeps playing
+    if(S.lv&&S.lv.on){t.classList.toggle("on",on);t.textContent=on?"✓ Lido":"✓ Li hoje";return}
+    return render()}
   if(d.sw){if(!notif().on)return enablePush();const n=notif();return updatePush({[d.sw]:!n[d.sw]})}
-  if(d.day){S.devDate=new Date(S.devDate.getFullYear(),S.devDate.getMonth(),S.devDate.getDate()+ +d.day);return render()}
+  if(d.day){if(S.lv)S.lv.on=false;S.devDate=new Date(S.devDate.getFullYear(),S.devDate.getMonth(),S.devDate.getDate()+ +d.day);return render()}
   if(d.search){return runSearch(d.search)}
   if(d.ed){store.set("edition",d.ed);closeSheet();toast("Livro trocado");return render()}
   if(d.delref){const k=devKey(),e=store.get(k,{refs:[],note:""});e.refs.splice(+d.delref,1);store.set(k,e);return render()}
@@ -613,6 +684,8 @@ document.addEventListener("click",async ev=>{
     case "enablepush":return enablePush();
     case "testpush":try{const sub=await currentSub(false);if(!sub)throw 0;await pushCall("/test",{subscription:sub.toJSON()});toast("Aviso enviado. Deve chegar em instantes.")}catch(e){toast("O aviso de teste falhou. Tente ligar os avisos de novo.")}return;
     case "story":return makeStory();
+    case "lvplay":if(S.lv){S.lv.on=true;S.lv.fail=0}return render();
+    case "lvnext":if(S.lv){S.lv.i++;S.lv.on=true;S.lv.fail=0}return render();
     case "storyshare":closeSheet();if(S.storyFile)await shareStory(S.storyFile).catch(()=>toast("Não consegui abrir o compartilhamento."));return;
     case "delphoto":await photoDB.set(devKey(),null);toast("Foto removida");return render();
   }
