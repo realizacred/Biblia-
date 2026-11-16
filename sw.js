@@ -1,6 +1,6 @@
 // Bump VERSION whenever index.html or biblia.json changes so phones pick up the new files.
-const VERSION = "biblia-v7";
-const CORE = ["./", "index.html", "biblia.json", "devocional.json", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png"];
+const VERSION = "biblia-v8";
+const CORE = ["./", "index.html", "biblia.json", "devocional.json", "louvor.json", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(CORE.map(u => new Request(u, { cache: "reload" })))).then(() => self.skipWaiting()));
@@ -16,6 +16,8 @@ self.addEventListener("activate", e => {
 // Everything else (Bible text, devotional, fonts) is cache first, falling back to the network and saving what it returns.
 self.addEventListener("fetch", e => {
   if (e.request.method !== "GET") return;
+  // The louvor player comes straight from YouTube and is never cached (it needs internet anyway).
+  if (/(^|\.)(youtube\.com|youtube-nocookie\.com|ytimg\.com|googlevideo\.com|ggpht\.com)$/.test(new URL(e.request.url).hostname)) return;
   if (e.request.mode === "navigate") {
     e.respondWith(fetch(e.request, { cache: "no-cache" }).then(res => {
       if (res.ok) { const copy = res.clone(); caches.open(VERSION).then(c => c.put("index.html", copy)); }
