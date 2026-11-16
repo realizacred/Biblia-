@@ -1,0 +1,28 @@
+name: Verificar vídeos dos louvores
+on:
+  push:
+    branches: [claude/project-thread-e1q8va]
+    paths: [tools/check-ids.json, .github/workflows/check-louvor.yml]
+  workflow_dispatch:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: oEmbed check
+        run: |
+          python3 - <<'PY'
+          import json, urllib.request, urllib.error, time
+          ids = json.load(open("tools/check-ids.json"))
+          for k, v in ids:
+              url = "https://www.youtube.com/oembed?format=json&url=https://www.youtube.com/watch?v=" + v
+              try:
+                  with urllib.request.urlopen(url, timeout=20) as r:
+                      d = json.load(r)
+                      print("OK", k, v, d.get("title","")[:70], "|", d.get("author_name",""))
+              except urllib.error.HTTPError as e:
+                  print("BAD", e.code, k, v)
+              except Exception as e:
+                  print("ERR", k, v, e)
+              time.sleep(0.3)
+          PY
