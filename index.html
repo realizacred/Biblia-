@@ -30,6 +30,46 @@
   --paper:#16171C;--card:#1F2128;--ink:#ECEAE4;--muted:#9A9CA6;--line:#30323B;
   --brand:#A9C48C;--brand-soft:#2A3322;--on-brand:#11180C;--mark:#5B4A1E;
   --hl-y:#5B4A1E;--hl-g:#24452A;--hl-b:#203A57;--hl-p:#552A35;color-scheme:dark}
+/* app color chosen by the user (Aparência sheet); olive is the default in :root above */
+:root[data-cor="azul"]{--brand:#2F5D8A;--brand-soft:#E2EBF4}
+:root[data-cor="vinho"]{--brand:#7D2F3E;--brand-soft:#F4E4E7}
+:root[data-cor="roxo"]{--brand:#5C4B8C;--brand-soft:#ECE8F6}
+:root[data-cor="terracota"]{--brand:#A4532E;--brand-soft:#F6E7DD}
+:root[data-cor="grafite"]{--brand:#3E4552;--brand-soft:#E6E8EC}
+:root[data-cor="dourado"]{--brand:#9A7420;--brand-soft:#F5EDD8}
+:root[data-cor="verdeagua"]{--brand:#1F7A72;--brand-soft:#DFF0EE}
+:root[data-cor="rosa"]{--brand:#B0466E;--brand-soft:#F7E3EB}
+:root[data-cor="marinho"]{--brand:#233A63;--brand-soft:#E1E6F0}
+:root[data-cor="floresta"]{--brand:#2D6047;--brand-soft:#E0EEE6}
+:root[data-cor="cafe"]{--brand:#6B4A35;--brand-soft:#EFE6DF}
+@media (prefers-color-scheme: dark){
+:root[data-cor="azul"]:not([data-theme="light"]){--brand:#9EC0E4;--brand-soft:#1E2B3A;--on-brand:#0D1622}
+:root[data-cor="vinho"]:not([data-theme="light"]){--brand:#E5A6B1;--brand-soft:#3A2228;--on-brand:#1E0E12}
+:root[data-cor="roxo"]:not([data-theme="light"]){--brand:#BDB0E8;--brand-soft:#2B2540;--on-brand:#15112A}
+:root[data-cor="terracota"]:not([data-theme="light"]){--brand:#EAB08E;--brand-soft:#3B2A20;--on-brand:#22130A}
+:root[data-cor="grafite"]:not([data-theme="light"]){--brand:#C5CAD3;--brand-soft:#2A2D33;--on-brand:#14161A}
+:root[data-cor="dourado"]:not([data-theme="light"]){--brand:#E3C27A;--brand-soft:#3A3020;--on-brand:#1E1606}
+:root[data-cor="verdeagua"]:not([data-theme="light"]){--brand:#8FD3CA;--brand-soft:#1C3533;--on-brand:#0B1A18}
+:root[data-cor="rosa"]:not([data-theme="light"]){--brand:#EDA9C3;--brand-soft:#3D2230;--on-brand:#22101A}
+:root[data-cor="marinho"]:not([data-theme="light"]){--brand:#A9B9DA;--brand-soft:#1E2536;--on-brand:#0E1422}
+:root[data-cor="floresta"]:not([data-theme="light"]){--brand:#95CFAF;--brand-soft:#1E3328;--on-brand:#0C1A12}
+:root[data-cor="cafe"]:not([data-theme="light"]){--brand:#D4B49E;--brand-soft:#352A22;--on-brand:#1B120C}
+}
+:root[data-theme="dark"][data-cor="azul"]{--brand:#9EC0E4;--brand-soft:#1E2B3A;--on-brand:#0D1622}
+:root[data-theme="dark"][data-cor="vinho"]{--brand:#E5A6B1;--brand-soft:#3A2228;--on-brand:#1E0E12}
+:root[data-theme="dark"][data-cor="roxo"]{--brand:#BDB0E8;--brand-soft:#2B2540;--on-brand:#15112A}
+:root[data-theme="dark"][data-cor="terracota"]{--brand:#EAB08E;--brand-soft:#3B2A20;--on-brand:#22130A}
+:root[data-theme="dark"][data-cor="grafite"]{--brand:#C5CAD3;--brand-soft:#2A2D33;--on-brand:#14161A}
+:root[data-theme="dark"][data-cor="dourado"]{--brand:#E3C27A;--brand-soft:#3A3020;--on-brand:#1E1606}
+:root[data-theme="dark"][data-cor="verdeagua"]{--brand:#8FD3CA;--brand-soft:#1C3533;--on-brand:#0B1A18}
+:root[data-theme="dark"][data-cor="rosa"]{--brand:#EDA9C3;--brand-soft:#3D2230;--on-brand:#22101A}
+:root[data-theme="dark"][data-cor="marinho"]{--brand:#A9B9DA;--brand-soft:#1E2536;--on-brand:#0E1422}
+:root[data-theme="dark"][data-cor="floresta"]{--brand:#95CFAF;--brand-soft:#1E3328;--on-brand:#0C1A12}
+:root[data-theme="dark"][data-cor="cafe"]{--brand:#D4B49E;--brand-soft:#352A22;--on-brand:#1B120C}
+.swatches{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.sw{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 2px 8px;border-radius:14px;border:1.5px solid var(--line);background:var(--paper);font-size:12px;font-weight:500;line-height:1.15;text-align:center}
+.sw i{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:#fff;font-style:normal;font-size:17px;font-weight:700}
+.sw.on{border-color:var(--ink);font-weight:700}
 *{box-sizing:border-box}
 html,body{background:var(--paper)}
 body{color:var(--ink);font-family:var(--ui);font-size:15px;-webkit-tap-highlight-color:transparent}
@@ -214,6 +254,11 @@ const S={tab:"buscar",view:"home",query:"",result:null,filter:"all",
 let highlights=store.get("highlights",{});
 const hlKey=(b,c,v)=>`${b}:${c}:${v}`;
 document.documentElement.style.setProperty("--fs",store.get("fontSize",18)+"px");
+const CORES=[["oliva","Verde oliva","#4E6B3A",["#61834A","#4E6B3A","#2F4223"]],["azul","Azul","#2F5D8A",["#3F74A6","#2F5D8A","#1C3A58"]],["vinho","Vinho","#7D2F3E",["#9A4052","#7D2F3E","#4E1A25"]],["roxo","Roxo","#5C4B8C",["#7363A8","#5C4B8C","#382C5A"]],["terracota","Terracota","#A4532E",["#BD6A41","#A4532E","#6A321A"]],["grafite","Grafite","#3E4552",["#565E6D","#3E4552","#23272F"]],["dourado","Dourado","#9A7420",["#B48A30","#9A7420","#634A12"]],["verdeagua","Verde-água","#1F7A72",["#2E9389","#1F7A72","#124D48"]],["rosa","Rosa","#B0466E",["#C65E86","#B0466E","#742C48"]],["marinho","Azul-marinho","#233A63",["#34507F","#233A63","#13213C"]],["floresta","Verde floresta","#2D6047",["#3E7A5C","#2D6047","#1A3B2B"]],["cafe","Café","#6B4A35",["#85604A","#6B4A35","#432D20"]]];
+function applyCor(k){const c=CORES.find(x=>x[0]===k)||CORES[0];document.documentElement.dataset.cor=c[0];
+  const m=document.querySelector('meta[name="theme-color"]');if(m)m.content=c[2];
+  if(typeof STORY!=="undefined")[STORY.g1,STORY.g2,STORY.g3]=c[3]}
+
 
 function toast(msg){const t=$("#toast");t.textContent=msg;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>t.hidden=true,1800)}
 async function copy(text){try{await navigator.clipboard.writeText(text);toast("Copiado")}catch(e){toast("Não deu para copiar neste aparelho")}}
@@ -296,7 +341,7 @@ function viewHome(){
   const recent=store.get("recent",[]);
   const showAll=S.allBooks;
   const list=showAll?BOOKS.map((b,i)=>i):[0,1,18,19,39,40,41,42];
-  return `<div class="top"><div class="brand">Bíblia <span>Sagrada</span></div><button class="icon-btn" data-act="font" aria-label="Tamanho da letra">Aa</button></div>
+  return `<div class="top"><div class="brand">Bíblia <span>Sagrada</span></div><button class="icon-btn" data-act="font" aria-label="Letra e cor">Aa</button></div>
   ${searchBox()}
   <div class="stack">
     <p class="hint" style="margin:0">Digite um <b>versículo</b> (João 3:16), um <b>capítulo</b> (Salmos 23) ou uma <b>palavra</b> (amor). Pode ser sem acento.</p>
@@ -342,7 +387,7 @@ function viewRead(){
   const verses=ch.map((t,i)=>{const h=highlights[hlKey(b,c,i+1)];const sel=S.sel&&S.sel.v===i+1;
     return `<span class="v${h?" "+h.c:""}${sel?" sel":""}" data-v="${i+1}" role="button" tabindex="0"><sup>${i+1}</sup>${esc(t)}</span> `}).join("");
   return `<div class="sticky" style="padding-top:6px"><div class="readhead"><button class="pick" data-act="picker">${refName(b,c)} <span>▾</span></button>
-    <button class="icon-btn" data-act="font" aria-label="Tamanho da letra">Aa</button><button class="icon-btn" data-act="home" aria-label="Buscar">${ICON.search.replace("<svg",'<svg width="18" height="18"')}</button></div></div>
+    <button class="icon-btn" data-act="font" aria-label="Letra e cor">Aa</button><button class="icon-btn" data-act="home" aria-label="Buscar">${ICON.search.replace("<svg",'<svg width="18" height="18"')}</button></div></div>
   <p class="hint" style="margin:0 0 6px">Toque num versículo para marcar com o marca-texto.</p>
   <div class="reading"><span class="chapnum">${c}</span>${verses}</div>
   <div class="pager">${prev?`<button class="act" data-open="${prev}">‹ ${refName(...prev)}</button>`:"<span></span>"}<span class="mid">${ch.length} versículos</span>${next?`<button class="act" data-open="${next}">${refName(...next)} ›</button>`:"<span></span>"}</div>`;
@@ -426,6 +471,7 @@ async function mountLouvor(){
 /* Instagram story (1080x1920) of the day's devotional, drawn on a canvas and handed to the phone's share sheet
    ("Salvar imagem" puts it in Photos). Text stays inside Instagram's safe area (roughly y 250-1670). */
 const STORY={W:1080,H:1920,x:92,g1:"#61834A",g2:"#4E6B3A",g3:"#2F4223",gold:"#F3D58A"};
+applyCor(store.get("cor","oliva"));
 function wrapText(ctx,text,maxW){
   const lines=[];let line="";
   for(const w of text.split(/\s+/)){const t=line?line+" "+w:w;if(line&&ctx.measureText(t).width>maxW){lines.push(line);line=w}else line=t}
@@ -632,7 +678,9 @@ function addRefSheet(){
 }
 function fontSheet(){
   const cur=store.get("fontSize",18);
-  openSheet(`<span class="t">Tamanho da letra</span><div class="chips">${[16,18,20,23].map((s,i)=>`<button class="chip${cur===s?" on":""}" data-fs="${s}" style="font-size:${13+i*2}px">${["Pequena","Normal","Grande","Maior"][i]}</button>`).join("")}</div>`);
+  const cor=store.get("cor","oliva");
+  openSheet(`<span class="t">Tamanho da letra</span><div class="chips">${[16,18,20,23].map((s,i)=>`<button class="chip${cur===s?" on":""}" data-fs="${s}" style="font-size:${13+i*2}px">${["Pequena","Normal","Grande","Maior"][i]}</button>`).join("")}</div>
+    <span class="t">Cor do app</span><div class="swatches">${CORES.map(([k,l,c])=>`<button class="sw${cor===k?" on":""}" data-cor="${k}" aria-pressed="${cor===k}"><i style="background:${c}">${cor===k?"✓":""}</i>${l}</button>`).join("")}</div>`);
 }
 
 /* ---------- render ---------- */
@@ -657,6 +705,7 @@ document.addEventListener("click",async ev=>{
   if(d.hlf){S.hlFilter=d.hlf;return render()}
   if(d.color){S.pick=d.color;document.querySelectorAll(".dot[data-color]").forEach(x=>x.classList.toggle("sel",x.dataset.color===d.color));return}
   if(d.pb){S.pb=+d.pb;return pickerSheet()}
+  if(d.cor){store.set("cor",d.cor);applyCor(d.cor);render();return fontSheet()}
   if(d.fs){store.set("fontSize",+d.fs);document.documentElement.style.setProperty("--fs",d.fs+"px");return fontSheet()}
   if(d.mode){store.set("devMode",d.mode);return render()}
   if(d.done){const on=!store.get(d.done,false);store.set(d.done,on);if(on)toast("Que bom! Até amanhã.");
